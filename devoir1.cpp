@@ -2,24 +2,44 @@
 #include <thread>
 #include <vector>
 #include <mutex>
+#include <random>
+#include <time.h>
 
 #include "semaphore.h"
-#include "philosopher.h"
 
 using namespace std;
 
+enum class State {
+	THINKING,
+	HUNGRY,
+	EATING
+};
+
+class Philosopher {
+public:
+	State state = State::THINKING;
+	int eatCount = 0;
+};
+
 const std::chrono::seconds ACTION_TIME = 1s;
-const unsigned int THINK_THRESHOLD = 80;
-const unsigned int TIMES_TO_EAT = 5;
-std::mutex mtx;
+const unsigned int THINK_THRESHOLD = 50;
+const unsigned int TIMES_TO_EAT = 1;
 Semaphore* requests[5];
 Philosopher* philosophers[5];
+std::mutex mtx;
+
+int intRand() {
+	std::hash<std::thread::id> hasher;
+	static thread_local mt19937* generator = nullptr;
+	if (!generator) generator = new mt19937(clock() + hasher(this_thread::get_id()));
+	uniform_int_distribution<int> distribution(0, 100);
+	return distribution(*generator);
+}
 
 void tryEat(unsigned int i) {
 	if (philosophers[(i + 1) % 5]->state != State::EATING
 		&& philosophers[(i + 4) % 5]->state != State::EATING
 		&& philosophers[i]->state == State::HUNGRY) {
-		cout << "Philosopher: " << i << "   Started eating" << endl;
 		philosophers[i]->state = State::EATING;
 		requests[i]->V();
 	}
@@ -29,26 +49,34 @@ void live(unsigned int i) {
 	Philosopher* philosopher = philosophers[i];
 	while (philosopher->eatCount != TIMES_TO_EAT)
 	{
-		// Finished eating
-		if (philosopher->state == State::EATING) {
+		switch (philosopher->state)
+		{
+		case State::EATING:
 			mtx.lock();
+			cout << "Philosopher " << i << " state: eating" << endl;
 			philosopher->eatCount++;
 			philosopher->state = State::THINKING;
-			cout << "Philosopher: " << i << "   Stopped eating" << endl;
 			tryEat((i + 4) % 5);
 			tryEat((i + 1) % 5);
 			mtx.unlock();
-		}
-		else {
-			// Gets hungry and tries to eat
-			if ((int)(rand() % 100 ) >= THINK_THRESHOLD) {
-				mtx.lock();
-				cout << "Philosopher: " << i << "   Got hungry" << endl;
+			break;
+		case State::HUNGRY:
+			mtx.lock();
+			cout << "Philosopher " << i << " state: hungry" << endl;
+			tryEat(i);
+			mtx.unlock();
+			requests[i]->P();
+			break;
+		case State::THINKING:
+			mtx.lock();
+			cout << "Philosopher " << i << " state: thinking" << endl;
+			if (intRand() >= THINK_THRESHOLD) {
 				philosopher->state = State::HUNGRY;
-				tryEat(i);
-				mtx.unlock();
-				requests[i]->P();
 			}
+			mtx.unlock();
+			break;
+		default:
+			break;
 		}
 		std::this_thread::sleep_for(ACTION_TIME);
 	}
@@ -56,9 +84,6 @@ void live(unsigned int i) {
 
 int main(int argc, char* argv[])
 {
-	// Seed random
-	srand((unsigned)time(NULL));
-
 	for (unsigned int i = 0; i < 5; ++i)
 	{
 		philosophers[i] = new Philosopher();
@@ -77,6 +102,6 @@ int main(int argc, char* argv[])
 		thread.join();
 	}
 
-	cout << "Everyone's belly is full." << endl;
+	cout << "Everyone's belly is full" << endl;
 	return 0;
 }
