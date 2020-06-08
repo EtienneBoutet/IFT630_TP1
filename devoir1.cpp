@@ -15,8 +15,7 @@ enum class State {
 	EATING
 };
 
-class Philosopher {
-public:
+struct Philosopher {
 	State state = State::THINKING;
 	int eatCount = 0;
 };

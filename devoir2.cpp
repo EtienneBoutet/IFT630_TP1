@@ -2,6 +2,7 @@
 #include <thread>
 #include <vector>
 #include <mutex>
+#include <math.h>
 
 #include "semaphore.h"
 
@@ -11,14 +12,14 @@ const std::chrono::seconds LAP_TIME = 1s;
 const unsigned int LAP_COUNT = 5;
 const unsigned int RIDE_CAPACITY = 15;
 const unsigned int IN_LINE_COUNT = 60;
-const unsigned int TIMES_TO_EAT = 5;
 Semaphore canEnter(0);
 Semaphore consumerEntered(0);
-std::vector<int> cart;
+size_t cartCount = 0;
 
-void cartFn() {
-	while (true) {
-		while (cart.size() != RIDE_CAPACITY) {
+void cart() {
+	for (unsigned int i = 0; i < floor(IN_LINE_COUNT / RIDE_CAPACITY); ++i)
+	{
+		while (cartCount != RIDE_CAPACITY) {
 			canEnter.V();
 			consumerEntered.P();
 		}
@@ -27,13 +28,13 @@ void cartFn() {
 			std::this_thread::sleep_for(LAP_TIME);
 		}
 		cout << "Ride is finished" << endl;
-		cart.clear();
+		cartCount = 0;
 	}
 }
 
 void consumer(unsigned int i) {
 	canEnter.P();
-	cart.push_back(i);
+	cartCount++;
 	cout << "Consumer " << i << "   entered the ride" << endl;
 	consumerEntered.V();
 }
@@ -47,7 +48,7 @@ int main(int argc, char* argv[])
 		threads.push_back(std::thread(consumer, i));
 	}
 
-	threads.push_back(std::thread(cartFn));
+	threads.push_back(std::thread(cart));
 
 	for (auto &thread: threads)
 	{
