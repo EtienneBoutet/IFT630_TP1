@@ -2,105 +2,74 @@
 #include <thread>
 #include <vector>
 #include <mutex>
-#include <random>
-#include <time.h>
+#include <condition_variable>
 
 #include "semaphore.h"
+#include "Philosopher.h"
+#include "PhilosopherSemaphore.h"
+#include "PhilosopherMonitor.h"
+#include "PhilosopherConstants.h"
 
 using namespace std;
 
-enum class State {
-	THINKING,
-	HUNGRY,
-	EATING
-};
+std::mutex printMtx;
 
-struct Philosopher {
-	State state = State::THINKING;
-	int eatCount = 0;
-};
-
-const std::chrono::seconds ACTION_TIME = 1s;
-const unsigned int THINK_THRESHOLD = 50;
-const unsigned int TIMES_TO_EAT = 1;
-Semaphore* requests[5];
-Philosopher* philosophers[5];
-std::mutex mtx;
-
-int intRand() {
-	std::hash<std::thread::id> hasher;
-	static thread_local mt19937* generator = nullptr;
-	if (!generator) generator = new mt19937(clock() + hasher(this_thread::get_id()));
-	uniform_int_distribution<int> distribution(0, 100);
-	return distribution(*generator);
-}
-
-void tryEat(unsigned int i) {
-	if (philosophers[(i + 1) % 5]->state != State::EATING
-		&& philosophers[(i + 4) % 5]->state != State::EATING
-		&& philosophers[i]->state == State::HUNGRY) {
-		philosophers[i]->state = State::EATING;
-		requests[i]->V();
-	}
-}
-
-void live(unsigned int i) {
-	Philosopher* philosopher = philosophers[i];
+void monitorLifecycle(unsigned int i, PhilosopherMonitor* monitor) {
+	Philosopher* philosopher = monitor->get(i);
 	while (philosopher->eatCount != TIMES_TO_EAT)
 	{
 		switch (philosopher->state)
 		{
 		case State::EATING:
-			mtx.lock();
+			printMtx.lock();
 			cout << "Philosopher " << i << " state: eating" << endl;
-			philosopher->eatCount++;
-			philosopher->state = State::THINKING;
-			tryEat((i + 4) % 5);
-			tryEat((i + 1) % 5);
-			mtx.unlock();
-			break;
-		case State::HUNGRY:
-			mtx.lock();
-			cout << "Philosopher " << i << " state: hungry" << endl;
-			tryEat(i);
-			mtx.unlock();
-			requests[i]->P();
+			printMtx.unlock();
+			monitor->stopEating(i);
 			break;
 		case State::THINKING:
-			mtx.lock();
+			printMtx.lock();
 			cout << "Philosopher " << i << " state: thinking" << endl;
+			printMtx.unlock();
 			if (intRand() >= THINK_THRESHOLD) {
-				philosopher->state = State::HUNGRY;
+				printMtx.lock();
+				cout << "Philosopher " << i << " state: hungry" << endl;
+				printMtx.unlock();
+				monitor->startEating(i);
 			}
-			mtx.unlock();
-			break;
-		default:
 			break;
 		}
 		std::this_thread::sleep_for(ACTION_TIME);
 	}
+	printMtx.lock();
+	cout << "Philosopher " << i << " state: done" << endl;
+	printMtx.unlock();
 }
 
-int main(int argc, char* argv[])
-{
-	for (unsigned int i = 0; i < 5; ++i)
-	{
-		philosophers[i] = new Philosopher();
-		requests[i] = new Semaphore(0);
+int main(int argc, char* argv[]) {
+	bool useMonitor = false;
+	for (int i = 0; i < argc; ++i)
+		if (!strcmp(argv[i], "-sw")) useMonitor = true;
+	if (useMonitor) {
+		cout << "Using monitor" << endl;
+		PhilosopherMonitor* monitor = new PhilosopherMonitor();
+		std::vector<std::thread> threads;
+
+		for (unsigned int i = 0; i < 5; ++i)
+		{
+			threads.push_back(std::thread(monitorLifecycle, i, monitor));
+		}
+
+		for (auto& thread : threads)
+		{
+			thread.join();
+		}
+		delete monitor;
+	} else {
+		cout << "Using semaphores" << endl;
+		PhilosopherSemaphore* semaphore = new PhilosopherSemaphore();
+		semaphore->exec();
+		delete semaphore;
 	}
-
-	std::vector<std::thread> threads;
-
-	for (unsigned int i = 0; i < 5; ++i)
-	{
-		threads.push_back(std::thread(live, i));
-	}
-
-	for (auto &thread: threads)
-	{
-		thread.join();
-	}
-
 	cout << "Everyone's belly is full" << endl;
 	return 0;
 }
