@@ -8,13 +8,8 @@
 
 using namespace std;
 
-std::mutex printMtx;
-
 void monitorLifecycle(unsigned int i, CartMonitor* monitor) {
-	monitor->enter();
-	printMtx.lock();
-	cout << "Consumer " << i << "   entered the ride" << endl;
-	printMtx.unlock();
+	monitor->enter(i);
 }
 
 int main(int argc, char* argv[]) {
@@ -23,7 +18,7 @@ int main(int argc, char* argv[]) {
 		if (!strcmp(argv[i], "-sw")) useMonitor = true;
 	if (useMonitor) {
 		cout << "Using monitor" << endl;
-		CartMonitor* monitor = new CartMonitor(&printMtx);
+		CartMonitor* monitor = new CartMonitor();
 		std::vector<std::thread> threads;
 
 		for (unsigned int i = 0; i < IN_LINE_COUNT; ++i)

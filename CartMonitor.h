@@ -12,11 +12,10 @@ using namespace std;
 
 class CartMonitor {
 public:
-	CartMonitor(std::mutex* mtx) {
+	CartMonitor() {
 		canEnter = new Semaphore(0);
 		consumerEntered = new Semaphore(0);
 		cartThread = std::thread(&CartMonitor::cart, this);
-		printMtx = mtx;
 	}
 
 	~CartMonitor() {
@@ -25,17 +24,19 @@ public:
 		cartThread.join();
 	}
 
-	void enter() {
+	void enter(unsigned int i) {
 		canEnter->P();
-		cartCount++;
+		mtx.lock();
+		cout << "Consumer " << i << "   entered the ride" << endl;
 		consumerEntered->V();
+		mtx.unlock();
 	}
 private:
 	Semaphore* canEnter;
 	Semaphore* consumerEntered;
 	size_t cartCount = 0;
 	std::thread cartThread;
-	std::mutex* printMtx;
+	std::mutex mtx;
 
 	void cart() {
 		for (unsigned int i = 0; i < floor(IN_LINE_COUNT / RIDE_CAPACITY); ++i)
@@ -43,17 +44,18 @@ private:
 			while (cartCount != RIDE_CAPACITY) {
 				canEnter->V();
 				consumerEntered->P();
+				cartCount++;
 			}
 			for (int i = 0; i < LAP_COUNT; ++i) {
-				printMtx->lock();
+				mtx.lock();
 				cout << "WOOHOO!!!" << endl;
-				printMtx->unlock();
+				mtx.unlock();
 				std::this_thread::sleep_for(LAP_TIME);
 			}
-			printMtx->lock();
+			mtx.lock();
 			cout << "Ride is finished" << endl;
-			printMtx->unlock();
 			cartCount = 0;
+			mtx.unlock();
 		}
 	}
 };

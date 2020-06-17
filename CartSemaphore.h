@@ -48,6 +48,7 @@ private:
 			while (cartCount != RIDE_CAPACITY) {
 				canEnter->V();
 				consumerEntered->P();
+				cartCount++;
 			}
 			for (int i = 0; i < LAP_COUNT; ++i) {
 				cout << "WOOHOO!!!" << endl;
@@ -60,7 +61,6 @@ private:
 
 	void consumer(unsigned int i) {
 		canEnter->P();
-		cartCount++;
 		cout << "Consumer " << i << "   entered the ride" << endl;
 		consumerEntered->V();
 	}
