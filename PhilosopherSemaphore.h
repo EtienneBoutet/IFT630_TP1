@@ -39,8 +39,6 @@ public:
 		{
 			thread.join();
 		}
-
-		cout << "Everyone's belly is full" << endl;
 	}
 private:
 	Semaphore* requests[5];
