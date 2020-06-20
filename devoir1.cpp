@@ -3,6 +3,8 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
+#include <stdio.h>
+#include <string.h>
 
 #include "semaphore.h"
 #include "Philosopher.h"

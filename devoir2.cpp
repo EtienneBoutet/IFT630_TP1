@@ -1,6 +1,8 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
+#include <stdio.h>
+#include <string.h>
 
 #include "semaphore.h"
 #include "CartMonitor.h"

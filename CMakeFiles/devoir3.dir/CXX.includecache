@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jumpman255/Documents/IFT630_TP1/devoir3.cpp
+iostream
+-
+thread
+-
+vector
+-
+mutex
+-
+condition_variable
+-
+sstream
+-
+semaphore.h
+/home/jumpman255/Documents/IFT630_TP1/semaphore.h
+
+/home/jumpman255/Documents/IFT630_TP1/semaphore.h
+mutex
+-
+condition_variable
+-
+

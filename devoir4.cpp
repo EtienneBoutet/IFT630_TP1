@@ -1,4 +1,6 @@
 #include <iostream>
+#include <thread>
+#include <math.h>
 #include "Canal.h"
 #include "CartConstants.h"
 
