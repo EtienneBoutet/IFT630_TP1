@@ -14,12 +14,16 @@ class CartSemaphore {
 public:
 	CartSemaphore() {
 		canEnter = new Semaphore(0);
+		canExit = new Semaphore(0);
 		consumerEntered = new Semaphore(0);
+		consumerExited = new Semaphore(0);
 	}
 
 	~CartSemaphore() {
 		delete canEnter;
+		delete canExit;
 		delete consumerEntered;
+		delete consumerExited;
 	}
 
 	void exec() {
@@ -39,7 +43,9 @@ public:
 	}
 private:
 	Semaphore* canEnter;
+	Semaphore* canExit;
 	Semaphore* consumerEntered;
+	Semaphore* consumerExited;
 	size_t cartCount = 0;
 	
 	void cart() {
@@ -55,7 +61,11 @@ private:
 				std::this_thread::sleep_for(LAP_TIME);
 			}
 			cout << "Ride is finished" << endl;
-			cartCount = 0;
+			while (cartCount != 0) {
+				canExit->V();
+				consumerExited->P();
+				cartCount--;
+			}
 		}
 	}
 
@@ -63,5 +73,8 @@ private:
 		canEnter->P();
 		cout << "Consumer " << i << "   entered the ride" << endl;
 		consumerEntered->V();
+		canExit->P();
+		cout << "Consumer " << i << "   exited the ride" << endl;
+		consumerExited->V();
 	}
 };

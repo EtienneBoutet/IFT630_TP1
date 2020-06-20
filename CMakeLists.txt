@@ -12,4 +12,6 @@ add_executable (devoir2 "devoir2.cpp"   "CartMonitor.h" "CartSemaphore.h" "CartC
 
 add_executable (devoir3 "devoir3.cpp" "semaphore.h"  )
 
+add_executable (devoir4 "devoir4.cpp" "semaphore.h" "Canal.h" )
+
 # TODO: Add tests and install targets if needed.

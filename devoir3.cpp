@@ -23,7 +23,6 @@ Semaphore consumerArrived(0);
 
 std::condition_variable seated;
 std::condition_variable exiting;
-std::condition_variable sleeping;
 
 std::mutex mtx;
 std::mutex printMtx;

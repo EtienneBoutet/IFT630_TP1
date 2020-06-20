@@ -13,7 +13,7 @@ void monitorLifecycle(unsigned int i, CartMonitor* monitor) {
 }
 
 int main(int argc, char* argv[]) {
-	bool useMonitor = false;
+	bool useMonitor = true;
 	for (int i = 0; i < argc; ++i)
 		if (!strcmp(argv[i], "-sw")) useMonitor = true;
 	if (useMonitor) {

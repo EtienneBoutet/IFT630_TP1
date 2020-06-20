@@ -14,29 +14,35 @@ class CartMonitor {
 public:
 	CartMonitor() {
 		canEnter = new Semaphore(0);
+		canExit = new Semaphore(0);
 		consumerEntered = new Semaphore(0);
+		consumerExited = new Semaphore(0);
 		cartThread = std::thread(&CartMonitor::cart, this);
 	}
 
 	~CartMonitor() {
 		delete canEnter;
+		delete canExit;
 		delete consumerEntered;
+		delete consumerExited;
 		cartThread.join();
 	}
 
 	void enter(unsigned int i) {
 		canEnter->P();
-		mtx.lock();
 		cout << "Consumer " << i << "   entered the ride" << endl;
 		consumerEntered->V();
-		mtx.unlock();
+		canExit->P();
+		cout << "Consumer " << i << "   exited the ride" << endl;
+		consumerExited->V();
 	}
 private:
 	Semaphore* canEnter;
+	Semaphore* canExit;
 	Semaphore* consumerEntered;
+	Semaphore* consumerExited;
 	size_t cartCount = 0;
 	std::thread cartThread;
-	std::mutex mtx;
 
 	void cart() {
 		for (unsigned int i = 0; i < floor(IN_LINE_COUNT / RIDE_CAPACITY); ++i)
@@ -47,15 +53,15 @@ private:
 				cartCount++;
 			}
 			for (int i = 0; i < LAP_COUNT; ++i) {
-				mtx.lock();
 				cout << "WOOHOO!!!" << endl;
-				mtx.unlock();
 				std::this_thread::sleep_for(LAP_TIME);
 			}
-			mtx.lock();
 			cout << "Ride is finished" << endl;
-			cartCount = 0;
-			mtx.unlock();
+			while (cartCount != 0) {
+				canExit->V();
+				consumerExited->P();
+				cartCount--;
+			}
 		}
 	}
 };
