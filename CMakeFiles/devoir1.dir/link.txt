@@ -1,1 +1,0 @@
-/usr/bin/c++     CMakeFiles/devoir1.dir/devoir1.cpp.o  -o devoir1 
